@@ -4,36 +4,40 @@ using FlaUI.UIA3;
 using System.Diagnostics;
 using Gma.System.MouseKeyHook;
 using CasePaste.Properties;
-using System.Reflection;
+using Newtonsoft.Json;
+using FlaUI.Core.Input;
+
 
 
 namespace EticketCase
 {
     public partial class Form1 : Form
-    {       
+    {
         private IKeyboardMouseEvents m_GlobalHook;
+
+        private const string processEticket = "CT.ECWS.WinForms";
+        RetrySettings retrySetting = new RetrySettings()
+        {
+            Timeout = TimeSpan.FromMilliseconds(1500),
+            Interval = TimeSpan.FromMilliseconds(200),
+        };
+
 
         public Form1()
         {
-            InitializeComponent();            
+            InitializeComponent();
             Subscribe();
             LoadSettings();
-            labelVersion.Text = "V" + Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            LoadTowCompaniesFromJson();
         }
-        
 
         public void Main_Function()
         {
             string caseNumberToPaste = "";
             string DRbuttonID = "1452";
             string processSpillman = "Mobile";
-            string processEticket = "CT.ECWS.WinForms";
             string CaseNumberBoxID = "txtCADNumber";
-            var retrySetting = new RetrySettings()
-            {
-                Timeout = TimeSpan.FromMilliseconds(1500),
-                Interval = TimeSpan.FromMilliseconds(200),
-            };
+
 
             if (this.checkBoxClipBoard.Checked == false & this.checkBox_eTicket.Checked == false)
             {
@@ -42,9 +46,9 @@ namespace EticketCase
             }
 
             using (var automation = new UIA3Automation())
-            {                     
+            {
                 //look for Spillman Mobile Process
-                var process1 = Process.GetProcessesByName(processSpillman).FirstOrDefault();                
+                var process1 = Process.GetProcessesByName(processSpillman).FirstOrDefault();
 
                 if (process1 == null) //Exit and notifiction if not found
                 {
@@ -53,7 +57,7 @@ namespace EticketCase
                 }
 
                 using (var appMobile = FlaUI.Core.Application.Attach(process1))
-                {                    
+                {
                     var windows = Retry.Find(() => appMobile.GetAllTopLevelWindows(automation), retrySetting);
 
                     if (windows != null)
@@ -69,28 +73,31 @@ namespace EticketCase
 
                         //which button to click based on Case # Search setting                        
                         AutomationElement tabs;
-                                                
+
                         var pane = Retry.Find(() => window.FindFirstDescendant(c => c.ByName("CADBar")), retrySetting);
-                                                                                
+
                         var buttonToClick = Retry.Find(() => pane.FindFirstDescendant(cd => cd.ByName("My Call")), retrySetting);
-                        
-                        if (buttonToClick.IsEnabled == false)                        
-                        {                        
+
+                        if (buttonToClick.IsEnabled == false)
+                        {
                             BalloonNotification("You do not appear to be on a call", "FAILED");
-                            
-                            return;                            
+
+                            return;
                         }
-                        
-                        int j = 0;                        
-                        do{                        
-                            buttonToClick.Click();                            
+
+                        int j = 0;
+                        do
+                        {
+                            buttonToClick.Click();
                             j++;
-    
-                        } while (j < 3);
-                                                
+
+                        } while (j < 3);                       
+
                         tabs = Retry.Find(() => window.FindFirstDescendant(cf => cf.ByAutomationId("1120")), retrySetting);
-                        
-                        var TabToClick = Retry.Find(() => tabs.FindFirstDescendant(cf => cf.ByName("Other")), retrySetting).AsTabItem();                                                                                               
+
+                        Wait.UntilResponsive(tabs, new TimeSpan(600));
+
+                        var TabToClick = Retry.Find(() => tabs.FindFirstDescendant(cf => cf.ByName("Other")), retrySetting).AsTabItem();
 
                         TabToClick.WaitUntilClickable(new TimeSpan(500));
 
@@ -109,7 +116,7 @@ namespace EticketCase
                         }
 
                         var DrButton = Retry.Find(() => window.FindFirstDescendant(cf => cf.ByAutomationId(DRbuttonID)), retrySetting);
-                        
+
                         if (DrButton != null)
                         {
                             BalloonNotification(DrButton.Name);
@@ -141,40 +148,49 @@ namespace EticketCase
 
                     //look for ticket windown
                     using (var appTicket = FlaUI.Core.Application.Attach(process2))
-                    {                        
+                    {
                         var DashBoard = Retry.Find(() => appTicket.GetAllTopLevelWindows(automation), retrySetting);
 
                         if (DashBoard != null && DashBoard[0].AsWindow().ModalWindows.Count() > 0)
                         {
-                            var Ticket = DashBoard[0].AsWindow().ModalWindows.First(w => w.Name == "Ticket");
 
-                            if (Ticket.IsOffscreen)
+                            try
                             {
-                                Ticket.Patterns.Window.Pattern.SetWindowVisualState(FlaUI.Core.Definitions.WindowVisualState.Normal);
+                                var Ticket = DashBoard[0].AsWindow().ModalWindows.First(w => w.Name == "Ticket");
+
+                                if (Ticket.IsOffscreen)
+                                {
+                                    Ticket.Patterns.Window.Pattern.SetWindowVisualState(FlaUI.Core.Definitions.WindowVisualState.Normal);
+                                }
+
+                                Ticket.Focus();
+
+                                var tabs = Retry.Find(() => Ticket.FindFirstDescendant(cf => cf.ByAutomationId("tabTicket")), retrySetting);
+
+                                var NotesTab = Retry.Find(() => tabs.FindFirstDescendant(cf => cf.ByName(@"Notes/Comments")), retrySetting).AsTabItem();
+
+                                NotesTab.WaitUntilClickable(new TimeSpan(500));
+                                AutomationElement CaseBox;
+                                int i = 0;
+                                do
+                                {
+                                    NotesTab.Click();
+                                    CaseBox = Retry.Find(() => Ticket.FindFirstDescendant(cf => cf.ByAutomationId(CaseNumberBoxID)), retrySetting);
+                                    i++;
+                                } while (CaseBox == null || i < 3);
+
+                                if (CaseBox == null)
+                                {
+                                    BalloonNotification("eTicket error", "FAILED");
+                                    return;
+                                }
+                                CaseBox.AsTextBox().Text = caseNumberToPaste;
+                            }
+                            catch (Exception)
+                            {
+                                BalloonNotification("Ticket Window Not Located", "FAILED");
                             }
 
-                            Ticket.Focus();
-
-                            var tabs = Retry.Find(() => Ticket.FindFirstDescendant(cf => cf.ByAutomationId("tabTicket")), retrySetting);
-
-                            var NotesTab = Retry.Find(() => tabs.FindFirstDescendant(cf => cf.ByName(@"Notes/Comments")), retrySetting).AsTabItem();
-
-                            NotesTab.WaitUntilClickable(new TimeSpan(500));
-                            AutomationElement CaseBox;
-                            int i = 0;
-                            do
-                            {
-                                NotesTab.Click();
-                                CaseBox = Retry.Find(() => Ticket.FindFirstDescendant(cf => cf.ByAutomationId(CaseNumberBoxID)), retrySetting);
-                                i++;
-                            } while (CaseBox == null || i < 3);
-
-                            if (CaseBox == null)
-                            {
-                                BalloonNotification("eTicket error", "FAILED");
-                                return;
-                            }
-                            CaseBox.AsTextBox().Text = caseNumberToPaste;
                         }
                         else
                         {
@@ -194,17 +210,17 @@ namespace EticketCase
         private void LoadSettings()
         {
             this.checkBoxClipBoard.Checked = Settings.Default.Clipboard;
-            this.checkBox_eTicket.Checked = Settings.Default.eticket;           
+            this.checkBox_eTicket.Checked = Settings.Default.eticket;
         }
 
-        private void BalloonNotification(string message, string title = "Case Number:") 
+        private void BalloonNotification(string message, string title = "Case Number:")
         {
             if (this.notifyIcon1.Visible == false)
             {
                 this.notifyIcon1.Visible = true;
-            }            
+            }
             notifyIcon1.BalloonTipTitle = title;
-            notifyIcon1.BalloonTipText = message;  
+            notifyIcon1.BalloonTipText = message;
             notifyIcon1.BalloonTipIcon = ToolTipIcon.None;
             notifyIcon1.ShowBalloonTip(1);
         }
@@ -230,16 +246,16 @@ namespace EticketCase
                 {
                     BalloonNotification("No Case # Behavior Setting Saved", "Settings");
                 }
-                
+
             }
         }
-        
+
         private void Unsubscribe()
         {
             m_GlobalHook.KeyDown -= GlobalHookKeyDown;
             m_GlobalHook.Dispose();
         }
-               
+
         private void Form1_Resize(object sender, EventArgs e)
         {
             if (WindowState == FormWindowState.Minimized)
@@ -262,18 +278,114 @@ namespace EticketCase
             SaveSettings();
         }
 
-        public void SaveSettings() {
+        public void SaveSettings()
+        {
 
             Settings.Default.Clipboard = this.checkBoxClipBoard.Checked;
             Settings.Default.eticket = this.checkBox_eTicket.Checked;
             try
             {
-                Settings.Default.Save();                
+                Settings.Default.Save();
             }
             catch (Exception)
             {
                 BalloonNotification("Settings FAILED to save.");
             }
-        }        
+        }
+
+        private void LoadTowCompaniesFromJson()
+        {
+            // Deserialize JSON from file to list of TowCompany objects
+            string jsonTowCompanies = File.ReadAllText("tow_companies.json");
+            List<TowCompany> towCompanies = JsonConvert.DeserializeObject<List<TowCompany>>(jsonTowCompanies);
+
+            // Add tow companies to the ComboBox
+            this.comboBoxTowCompanyList.Items.AddRange(towCompanies.ToArray());
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            // Check if an item is selected in the ComboBox
+            if (comboBoxTowCompanyList.SelectedIndex != -1)
+            {
+                // Get the selected item from the ComboBox
+                TowCompany selectedItem = (TowCompany)comboBoxTowCompanyList.SelectedItem;
+
+                // Call your function and pass the selected item to it
+                SendTowToForm(selectedItem);
+            }
+            else
+            {
+                MessageBox.Show("Please select an item from the ComboBox.");
+            }
+        }
+
+        private void SendTowToForm(TowCompany towCompany)
+        {
+            using (var automation = new UIA3Automation())
+            {
+
+                var process2 = Process.GetProcessesByName(processEticket).FirstOrDefault();
+
+                if (process2 == null)
+                {
+                    BalloonNotification("eTicket process was not found.");
+                    return;
+                }
+
+                //look for ticket windown
+                using (var appTicket = FlaUI.Core.Application.Attach(process2))
+                {
+                    var DashBoard = Retry.Find(() => appTicket.GetAllTopLevelWindows(automation), retrySetting);
+
+                    if (DashBoard != null && DashBoard[0].AsWindow().ModalWindows.Count() > 0)
+                    {
+
+                        try
+                        {
+                            var TowForm = DashBoard[0].AsWindow().ModalWindows.First(w => w.Name == "ABANDONED / IMPOUNDED VEHICLE ");
+
+                            if (TowForm.IsOffscreen)
+                            {
+                                TowForm.Patterns.Window.Pattern.SetWindowVisualState(FlaUI.Core.Definitions.WindowVisualState.Normal);
+                            }
+
+                            TowForm.Focus();
+
+                            AutomationElement TBox;                            
+                            TBox = Retry.Find(() => TowForm.FindFirstDescendant(cf => cf.ByAutomationId("txtTowingCompanyName")), retrySetting);
+                            TBox.AsTextBox().Text = towCompany.CompanyName;
+                            
+                            TBox = Retry.Find(() => TowForm.FindFirstDescendant(cf => cf.ByAutomationId("txtTowingCompanyAddress")), retrySetting);
+                            TBox.AsTextBox().Text = towCompany.Street;
+                            
+                            TBox = Retry.Find(() => TowForm.FindFirstDescendant(cf => cf.ByAutomationId("txtTowingCompanyCity")), retrySetting);
+                            TBox.AsTextBox().Text = towCompany.City;
+                            
+                            TBox = Retry.Find(() => TowForm.FindFirstDescendant(cf => cf.ByAutomationId("mtbTowingCompanyZip")), retrySetting);
+                            TBox.AsTextBox().Enter(towCompany.Zip);
+                            
+                            TBox = Retry.Find(() => TowForm.FindFirstDescendant(cf => cf.ByAutomationId("mtbTowingCompanyPhone")), retrySetting);
+                            TBox.AsTextBox().Enter(towCompany.PhoneNumber.Replace("-",""));
+
+                            BalloonNotification("Tow Company added", "Success");
+
+                        }
+                        catch (Exception)
+                        {
+                            BalloonNotification("eTicket TowForm Window Not Located", "FAILED");
+                        }
+                    }
+                    else
+                    {
+                        BalloonNotification("eTicket TowForm Window Not Located", "FAILED");
+                    }
+                }
+
+
+            }
+
+        }
+
     }
 }

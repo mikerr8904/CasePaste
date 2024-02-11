@@ -34,7 +34,9 @@
             checkBoxClipBoard = new CheckBox();
             checkBox_eTicket = new CheckBox();
             label1 = new Label();
-            labelVersion = new Label();
+            comboBoxTowCompanyList = new ComboBox();
+            button1 = new Button();
+            label2 = new Label();
             SuspendLayout();
             // 
             // notifyIcon1
@@ -74,27 +76,49 @@
             label1.TabIndex = 4;
             label1.Text = "Case # Behavior";
             // 
-            // labelVersion
+            // comboBoxTowCompanyList
             // 
-            labelVersion.AutoSize = true;
-            labelVersion.Location = new Point(54, 102);
-            labelVersion.Name = "labelVersion";
-            labelVersion.Size = new Size(38, 15);
-            labelVersion.TabIndex = 5;
-            labelVersion.Text = "label2";
+            comboBoxTowCompanyList.FormattingEnabled = true;
+            comboBoxTowCompanyList.Location = new Point(188, 49);
+            comboBoxTowCompanyList.Name = "comboBoxTowCompanyList";
+            comboBoxTowCompanyList.Size = new Size(121, 23);
+            comboBoxTowCompanyList.TabIndex = 6;
+            // 
+            // button1
+            // 
+            button1.Location = new Point(188, 78);
+            button1.Name = "button1";
+            button1.Size = new Size(121, 23);
+            button1.TabIndex = 7;
+            button1.Text = "Add to eTow Form";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label2.Location = new Point(195, 24);
+            label2.Name = "label2";
+            label2.Size = new Size(93, 15);
+            label2.TabIndex = 8;
+            label2.Text = "Tow Companies";
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(202, 128);
-            Controls.Add(labelVersion);
+            ClientSize = new Size(319, 128);
+            Controls.Add(label2);
+            Controls.Add(button1);
+            Controls.Add(comboBoxTowCompanyList);
             Controls.Add(label1);
             Controls.Add(checkBox_eTicket);
             Controls.Add(checkBoxClipBoard);
             Margin = new Padding(3, 2, 3, 2);
             MaximizeBox = false;
-            MaximumSize = new Size(218, 167);
+            MaximumSize = new Size(335, 167);
+            MinimumSize = new Size(335, 167);
             Name = "Form1";
             Text = "CasePaste";
             FormClosing += Form1_FormClosing;
@@ -108,6 +132,8 @@
         private CheckBox checkBoxClipBoard;
         private CheckBox checkBox_eTicket;
         private Label label1;
-        private Label labelVersion;
+        private ComboBox comboBoxTowCompanyList;
+        private Button button1;
+        private Label label2;
     }
 }

@@ -1,0 +1,51 @@
+[
+  {
+    "CompanyName": "BELLS",
+    "PhoneNumber": "812-327-4030",
+    "Street": "2500 W INDUSTRIAL PARK DR",
+    "City": "BLOOMINGTON",
+    "Zip": "47404"
+  },
+  {
+    "CompanyName": "BLANDS",
+    "PhoneNumber": "812-336-0398",
+    "Street": "6679 W MCNEELY ST",
+    "City": "ELLETTSVILLE",
+    "Zip": "47429"
+  },
+  {
+    "CompanyName": "CHANDLERS",
+    "PhoneNumber": "812-336-1061",
+    "Street": "1107 N JACKSON ST",
+    "City": "BLOOMINGTON",
+    "Zip": "47404"
+  },
+  {
+    "CompanyName": "HAWKINS",
+    "PhoneNumber": "812-822-2928",
+    "Street": "800 E THORTON DR",
+    "City": "BLOOMINGTON",
+    "Zip": "47401"
+  },
+  {
+    "CompanyName": "KENS WESTSIDE",
+    "PhoneNumber": "812-336-9050",
+    "Street": "3111 W VENTURE BLVD",
+    "City": "BLOOMINGTON",
+    "Zip": "47404"
+  },
+  {
+    "CompanyName": "RICKS",
+    "PhoneNumber": "812-876-7108",
+    "Street": "1201 W 10TH ST",
+    "City": "BLOOMINGTON",
+    "Zip": "47404"
+  },
+  {
+    "CompanyName": "WRAYS",
+    "PhoneNumber": "812-369-4520",
+    "Street": "1109 N JACKSON ST",
+    "City": "BLOOMINGTON",
+    "Zip": "47404"
+  }
+]
